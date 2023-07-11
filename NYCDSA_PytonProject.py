@@ -3,7 +3,7 @@
 
 # ## Import packages and setup display options
 
-# In[1]:
+# In[2]:
 
 
 import pandas as pd
@@ -12,7 +12,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 100)
 
 
-# In[2]:
+# In[3]:
 
 
 import numpy as np
@@ -24,7 +24,7 @@ sns.set(rc={'figure.figsize':(15,12)})
 
 # ## Import business data from Yelp Academic Dataset
 
-# In[3]:
+# In[4]:
 
 
 business_data = pd.read_csv('yelp_academic_dataset_business.csv')
@@ -35,13 +35,13 @@ business_data.head()
 
 # Check for columns that have missing values and drop those that ONLY have them
 
-# In[4]:
+# In[5]:
 
 
 sns.heatmap(business_data.isnull(), cbar = False)
 
 
-# In[5]:
+# In[6]:
 
 
 business_data.dropna(axis = 'columns', how = 'all', inplace = True)
@@ -50,7 +50,7 @@ business_data.shape
 
 # Chang the format of column names
 
-# In[6]:
+# In[7]:
 
 
 business_data.columns = business_data.columns.str.replace('.', '_').str.lower()
@@ -59,7 +59,7 @@ business_data.columns
 
 # Drop not needed columns
 
-# In[7]:
+# In[8]:
 
 
 business_data.drop(columns = ['attributes_acceptsinsurance', 'attributes_agesallowed', 'attributes_alcohol',
@@ -82,7 +82,7 @@ business_data.info()
 
 # Remove hours columns
 
-# In[8]:
+# In[9]:
 
 
 business_data.drop(columns = ['hours_friday', 'hours_monday', 'hours_saturday', 'hours_sunday', 'hours_thursday', 'hours_tuesday', 'hours_wednesday'], inplace = True)
@@ -91,7 +91,7 @@ business_data.info()
 
 # ### Load home prices index data (median list price all homes zillow)
 
-# In[9]:
+# In[10]:
 
 
 home_prices = pd.read_csv("Metro_mlp_uc_sfrcondo_sm_month.csv")
@@ -141,13 +141,13 @@ home_prices['StateName'].nunique()
 
 # Subset to only States
 
-# In[17]:
+# In[16]:
 
 
 us_data = pd.read_csv('territory_abbr.csv')
 
 
-# In[18]:
+# In[17]:
 
 
 us_data.columns = us_data.columns.str.lower()
@@ -155,7 +155,7 @@ us_data.rename(columns = {'state': 'longform', 'abbreviation': 'state'}, inplace
 us_data.head()
 
 
-# In[19]:
+# In[18]:
 
 
 business_data = business_data.merge(us_data, how = 'inner', on = 'state')
@@ -164,7 +164,7 @@ business_data['state'].nunique()
 
 # ### Merge business data with home price data
 
-# In[20]:
+# In[19]:
 
 
 business_data = business_data.merge(home_prices, how='inner', on='city')
@@ -172,19 +172,19 @@ business_data = business_data.merge(home_prices, how='inner', on='city')
 
 # Rank cities by list price
 
-# In[21]:
+# In[20]:
 
 
 business_data['list_price'].isna().sum()
 
 
-# In[22]:
+# In[21]:
 
 
 business_data = business_data[business_data['list_price'].notna()]
 
 
-# In[26]:
+# In[22]:
 
 
 business_data.sort_values(by='list_price', ascending = False).head()
@@ -192,7 +192,7 @@ business_data.sort_values(by='list_price', ascending = False).head()
 
 # ### Use only food establishments
 
-# In[27]:
+# In[23]:
 
 
 food_establishments = business_data.copy()
@@ -202,7 +202,7 @@ food_establishments = food_establishments.loc[filt_food]
 food_establishments['categories'].count()
 
 
-# In[28]:
+# In[24]:
 
 
 food_establishments.head()
@@ -212,7 +212,7 @@ food_establishments.head()
 
 # ## Are higher rated restaurants the most reviewd?
 
-# In[30]:
+# In[25]:
 
 
 fig, ax = plt.subplots(figsize = (10,10))
@@ -225,7 +225,7 @@ ax.set_ylabel('Number of reviews')
 
 # ## Do food establishments in cities with higher listing prices have higher ratings?
 
-# In[33]:
+# In[26]:
 
 
 food_establishments.groupby(by=['list_price_range'])['stars'].agg(['count', 'mean', 'median', 'std']).round(2)
@@ -233,20 +233,20 @@ food_establishments.groupby(by=['list_price_range'])['stars'].agg(['count', 'mea
 
 # ## Is Mexican food better rated in border states than the rest of the US?
 
-# In[34]:
+# In[27]:
 
 
 filt_mexican = food_establishments['categories'].str.contains(pat = r'mexican', regex = True) == True
 mexican_establishments = food_establishments.loc[filt_mexican]
 
 
-# In[35]:
+# In[28]:
 
 
 len(mexican_establishments)
 
 
-# In[36]:
+# In[29]:
 
 
 border_state = ['CA', 'AZ', 'NM', 'TX']
@@ -254,24 +254,13 @@ mexican_establishments['border'] = np.where(mexican_establishments['state'].isin
 mexican_establishments.sample(5)
 
 
-# In[37]:
+# In[43]:
 
 
 mexican_establishments['border'].value_counts()
 
 
-# In[38]:
-
-
-fig, ax = plt.subplots(figsize = (10,10))
-ax.set_yscale('log')
-
-sns.boxplot(data = mexican_establishments, x = 'border', y = 'review_count')
-fig.suptitle('Relationship between Review Count and Border State', fontsize = 25)
-ax.set_ylabel('Number of reviews')
-
-
-# In[39]:
+# In[46]:
 
 
 mexican_establishments.groupby(by=['border'])['stars'].agg(['count', 'mean', 'median', 'std']).round(2)
@@ -279,14 +268,14 @@ mexican_establishments.groupby(by=['border'])['stars'].agg(['count', 'mean', 'me
 
 # ## Load Review data from teh Yelp Academic Dataset
 
-# In[40]:
+# In[47]:
 
 
 review_data = pd.read_csv('yelp_academic_dataset_review.csv')
 review_data.head()
 
 
-# In[41]:
+# In[48]:
 
 
 len(review_data)
@@ -294,14 +283,14 @@ len(review_data)
 
 # Subset to only food establishments
 
-# In[42]:
+# In[49]:
 
 
-review_data = review_data.merge(food_establishments, on = 'business_id', how = 'inner')
+review_data = review_data.merge(mexican_establishments, on = 'business_id', how = 'inner')
 len(review_data)
 
 
-# In[43]:
+# In[50]:
 
 
 review_data = review_data.merge(food_establishments, on = 'business_id', how = 'inner')
@@ -312,86 +301,102 @@ food_review.rename(columns = {'business_id': 'business_id', 'review_count': 'rev
 food_review.tail()
 
 
-# Text based analysis
+# ### Text based analysis
 
-# In[ ]:
+# Are picante mexican restaurants better ranked?
 
-
-excl = review_data['text'].str.extract(pat = r'(!+)')
-excl.head()
+# In[155]:
 
 
-# In[ ]:
+palabra = review_data['text'].str.extract(pat = r'(spice|spicy|picante|fuego|caliente)')
+palabra.head()
 
 
-p21 = pd.concat([review_data, excl], axis = 'columns')
-p21.head()
+# In[156]:
 
 
-# In[ ]:
+cuenta = review_data['text'].str.count(pat = r'(spice|spicy|picante|fuego|caliente)')
 
 
-p21 = p21[['stars', 0]]
-p21
+# In[166]:
 
 
-# In[ ]:
+cuenta = cuenta.to_frame()
+cuenta.rename(columns={'text': 'count'}, inplace = True)
+cuenta.head()
 
 
-p21['exclamations'] = p21[0].str.len()
-p21['exclamations'] = p21['exclamations'].fillna(0)
-#p21['has_excl'] = 'No' if p21['exclamations'] == 0 else 'Yes'
-p21
+# In[168]:
 
 
-# In[ ]:
+picante = pd.concat([review_data, palabra, cuenta], axis = 'columns')
+picante.head()
 
 
-p21.sort_values(by='exclamations', ascending = False)
+# In[172]:
 
 
-# In[ ]:
+picante.iloc[16639].text
 
 
-p21['has_excl'] = [False if n == 0 else True for n in p21['exclamations']]
-p21.head()
+# In[173]:
 
 
-# In[ ]:
+picante = picante[['stars', 0, 'count']]
 
 
-p21['exclamations'].value_counts().head()
+# In[177]:
 
 
-# In[ ]:
+picante['picante'] = picante[0].str.len()
+picante['picante'] = picante['picante'].fillna(0)
 
 
-p21.groupby('has_excl').agg({'stars': ['mean', 'std']})
+# In[183]:
 
 
-# In[ ]:
+picante.sort_values(by='count', ascending = False)
 
 
-p21.plot(kind = 'scatter', x = 'stars', y = 'exclamations', figsize = (8,5))
+# In[184]:
 
 
-# In[ ]:
+picante['has_picante'] = [False if n == 0 else True for n in picante['picante']]
+picante.head()
 
 
-p21_b = p21.groupby('stars').agg({'exclamations': ['mean', 'std']})
-p21_b.dropna(inplace = True)
-p21_b
+# In[185]:
 
 
-# In[ ]:
+picante.groupby('has_picante').agg({'stars': ['mean', 'std']}).round(2)
 
 
-p21_b = p21_b.reset_index()
-p21_b.plot(kind = 'scatter', x = 'stars', y = [('exclamations', 'mean')], figsize = (8,5))
+# In[226]:
 
 
-# In[ ]:
+picante_agg = picante.groupby('count').agg({'stars': ['mean', 'std']}).round(2)
+picante_agg
 
 
+# In[231]:
 
+
+picante_bar = picante.groupby('count')['stars'].mean().round(2).reset_index()
+picante_bar
+
+
+# In[239]:
+
+
+plt.figure(figsize=(16, 11))
+sns.barplot(x='count', y='stars', data=picante_bar)
+
+
+# In[208]:
+
+
+plt.figure(figsize=(16, 11))
+plt.subplot(2, 1, 1)
+sns.stripplot(x='count', y='stars', data=picante, color='blue',
+              alpha=0.1, size=4)
 
