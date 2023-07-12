@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In this Python project I will use the Yelp Academic Dataset (Business dataset and Reviews dataset) in conjunction with a dataset from Zillow (median list price for homes) in order to answer different questions regarding how food establishments are reviewed.
+
 # ## Import packages and setup display options
 
-# In[2]:
+# In[1]:
 
 
 import pandas as pd
@@ -12,7 +14,7 @@ pd.set_option('display.max_columns', 500)
 pd.set_option('display.width', 100)
 
 
-# In[3]:
+# In[2]:
 
 
 import numpy as np
@@ -22,7 +24,7 @@ import seaborn as sns
 sns.set(rc={'figure.figsize':(15,12)})
 
 
-# In[245]:
+# In[3]:
 
 
 import scipy.stats as stats
@@ -145,7 +147,7 @@ home_prices['city'].nunique()
 home_prices['StateName'].nunique()
 
 
-# Subset to only States
+# Subset yelp dataset to use to only States (no territories or places in canada)
 
 # In[16]:
 
@@ -198,12 +200,18 @@ business_data.sort_values(by='list_price', ascending = False).head()
 
 # ### Use only food establishments
 
+# In[ ]:
+
+
+
+
+
 # In[23]:
 
 
 food_establishments = business_data.copy()
 food_establishments['categories'] = food_establishments['categories'].str.lower()
-filt_food = food_establishments['categories'].str.contains(pat = r'dining|restaurant', regex = True) == True
+filt_food = food_establishments['categories'].str.contains(pat = r'dining|restaurant|fast food|food stands', regex = True) == True
 food_establishments = food_establishments.loc[filt_food]
 food_establishments['categories'].count()
 
@@ -260,43 +268,51 @@ mexican_establishments['border'] = np.where(mexican_establishments['state'].isin
 mexican_establishments.sample(5)
 
 
-# In[43]:
+# In[30]:
 
 
 mexican_establishments['border'].value_counts()
 
 
-# In[46]:
+# In[31]:
 
 
 mexican_establishments.groupby(by=['border'])['stars'].agg(['count', 'mean', 'median', 'std']).round(2)
 
 
-# ## Load Review data from teh Yelp Academic Dataset
+# ### Are mexican restaurants better rated in high list price cities or not?
 
-# In[47]:
+# In[32]:
+
+
+mexican_establishments.groupby(by='list_price_range')['stars'].agg(['count', 'mean', 'median', 'std']).round(2)
+
+
+# ## Load Review data from the Yelp Academic Dataset
+
+# In[33]:
 
 
 review_data = pd.read_csv('yelp_academic_dataset_review.csv')
 review_data.head()
 
 
-# In[48]:
+# In[34]:
 
 
 len(review_data)
 
 
-# Subset to only food establishments
+# Subset to only mexican food establishments
 
-# In[49]:
+# In[35]:
 
 
 review_data = review_data.merge(mexican_establishments, on = 'business_id', how = 'inner')
 len(review_data)
 
 
-# In[50]:
+# In[36]:
 
 
 review_data = review_data.merge(food_establishments, on = 'business_id', how = 'inner')
@@ -309,22 +325,26 @@ food_review.tail()
 
 # ### Text based analysis
 
-# Are picante mexican restaurants better ranked?
+# Are spicy,picante, caliente mexican restaurants better ranked?
 
-# In[155]:
+# We first check if the restaurants reviews either have a synonym word for spicyness or not.
+
+# In[37]:
 
 
 palabra = review_data['text'].str.extract(pat = r'(spice|spicy|picante|fuego|caliente)')
 palabra.head()
 
 
-# In[156]:
+# Now we count the times those words are used in each review
+
+# In[38]:
 
 
 cuenta = review_data['text'].str.count(pat = r'(spice|spicy|picante|fuego|caliente)')
 
 
-# In[166]:
+# In[39]:
 
 
 cuenta = cuenta.to_frame()
@@ -332,104 +352,95 @@ cuenta.rename(columns={'text': 'count'}, inplace = True)
 cuenta.head()
 
 
-# In[168]:
+# In[41]:
 
 
 picante = pd.concat([review_data, palabra, cuenta], axis = 'columns')
-picante.head()
+picante.head(3)
 
 
-# In[172]:
+# As an example we will use review 16639
+
+# In[44]:
+
+
+picante.iloc[16639, -1]
+
+
+# It has one of the picante words two times
+
+# In[42]:
 
 
 picante.iloc[16639].text
 
 
-# In[173]:
+# It is correct, it uses picante and spicy.
+
+# In[45]:
 
 
 picante = picante[['stars', 0, 'count']]
 
 
-# In[177]:
+# In[49]:
 
 
 picante['picante'] = picante[0].str.len()
 picante['picante'] = picante['picante'].fillna(0)
+picante['has_picante'] = [False if n == 0 else True for n in picante['picante']]
+picante.head()
 
 
-# In[183]:
+# In[50]:
 
 
 picante.sort_values(by='count', ascending = False)
 
 
-# In[184]:
+# First we compare the results between the stars given to restaurants in which the review has one (or more) picante word and those that don't
+
+# In[52]:
 
 
-picante['has_picante'] = [False if n == 0 else True for n in picante['picante']]
-picante.head()
+picante.groupby('has_picante').agg({'stars': ['mean', 'std', 'count']}).round(2)
 
 
-# In[185]:
+# Now we runa ttest to see if the means are statistically the same or not
+
+# In[57]:
 
 
-picante.groupby('has_picante').agg({'stars': ['mean', 'std']}).round(2)
+has = picante[picante['has_picante'] == True].stars
+doesnt = picante[picante['has_picante'] == False].stars
 
 
-# In[266]:
+# In[58]:
+
+
+stats.ttest_ind(has, doesnt, equal_var = False)
+
+
+# We see that even though the difference is only 0.16 Stars. Because of the amount of reviews given we can say that they are not statistically the same. Mexican food establishments that are reviewed with at least one PICANTE word are rated higher than those that are not.
+
+# But what is the sweet spot? A little mexican spiciness can be good, but to much perhaps isnt ideal for american palates. Now we use the count of those words to check for this.
+
+# In[59]:
 
 
 picante_agg = picante.groupby('count').agg(mean = ('stars', 'mean'), std = ('stars', 'std'), obs = ('stars', 'count')).round(2)
 picante_agg
 
 
-# Compare the means when 0 picante words and 5 picante words
-
-# In[267]:
+# In[62]:
 
 
-mean1 = picante_agg.loc[0, 'mean']
-std1 = picante_agg.loc[0, 'std']
-count1 = picante_agg.loc[0, 'obs']
-
-mean2 = picante_agg.loc[5, 'mean']
-std2 = picante_agg.loc[5, 'std']
-count2 = picante_agg.loc[5, 'obs']
-
-pooled_s = (((count1 - 1)*std1**2 + (count2-1)*std2**2) / (count1 + count2 -2))**(1/2)
-se = pooled_s * ((1/count1)+(1/count2))**(1/2)
-t_value = (mean1 - mean2) / se
-t_value.round(2)
-
-
-# In[231]:
-
-
-picante_bar = picante.groupby('count')['stars'].mean().round(2).reset_index()
-picante_bar
-
-
-# In[274]:
-
-
-plt.plot(picante_bar['count'], picante_bar['stars'], color = 'red', linewidth = 10)
+picante_line = picante.groupby('count')['stars'].mean().round(2).reset_index()
+plt.plot(picante_line['count'], picante_line['stars'], color = 'red', linewidth = 10)
 plt.xlabel('Times picante word was used')
 plt.ylabel('Stars')
 
 
-# In[239]:
+# It appears that the highest rated restaurants were reviewed with these key words between 4 and 6 times. Too little spiciness or too much appear to be correlated with less stars given to a restaurant.
 
-
-plt.figure(figsize=(16, 11))
-sns.barplot(x='count', y='stars', data=picante_bar)
-
-
-# In[208]:
-
-
-plt.figure(figsize=(16, 11))
-plt.subplot(2, 1, 1)
-sns.stripplot(x='count', y='stars', data=picante, color='blue',
-              alpha=0.1, size=4)
-
+# In conclusion, add some PICANTE to your mexican food, but not too much.
