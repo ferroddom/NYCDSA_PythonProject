@@ -22,6 +22,12 @@ import seaborn as sns
 sns.set(rc={'figure.figsize':(15,12)})
 
 
+# In[245]:
+
+
+import scipy.stats as stats
+
+
 # ## Import business data from Yelp Academic Dataset
 
 # In[4]:
@@ -371,11 +377,30 @@ picante.head()
 picante.groupby('has_picante').agg({'stars': ['mean', 'std']}).round(2)
 
 
-# In[226]:
+# In[266]:
 
 
-picante_agg = picante.groupby('count').agg({'stars': ['mean', 'std']}).round(2)
+picante_agg = picante.groupby('count').agg(mean = ('stars', 'mean'), std = ('stars', 'std'), obs = ('stars', 'count')).round(2)
 picante_agg
+
+
+# Compare the means when 0 picante words and 5 picante words
+
+# In[267]:
+
+
+mean1 = picante_agg.loc[0, 'mean']
+std1 = picante_agg.loc[0, 'std']
+count1 = picante_agg.loc[0, 'obs']
+
+mean2 = picante_agg.loc[5, 'mean']
+std2 = picante_agg.loc[5, 'std']
+count2 = picante_agg.loc[5, 'obs']
+
+pooled_s = (((count1 - 1)*std1**2 + (count2-1)*std2**2) / (count1 + count2 -2))**(1/2)
+se = pooled_s * ((1/count1)+(1/count2))**(1/2)
+t_value = (mean1 - mean2) / se
+t_value.round(2)
 
 
 # In[231]:
@@ -383,6 +408,14 @@ picante_agg
 
 picante_bar = picante.groupby('count')['stars'].mean().round(2).reset_index()
 picante_bar
+
+
+# In[274]:
+
+
+plt.plot(picante_bar['count'], picante_bar['stars'], color = 'red', linewidth = 10)
+plt.xlabel('Times picante word was used')
+plt.ylabel('Stars')
 
 
 # In[239]:
